@@ -21,13 +21,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
   late String message;
   final List<SparkleParticle> _particles = [];
 
-  // -----------------------------
-  // AUDIO PLAYER
-  // -----------------------------
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   Future<void> _playChime() async {
@@ -71,6 +69,16 @@ class _HomeScreenState extends State<HomeScreen>
       curve: Curves.easeInOut,
     );
 
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: Curves.easeOut,
+      ),
+    );
+
     _fadeController.forward();
   }
 
@@ -84,9 +92,6 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  // -----------------------------
-  // NEW MESSAGE BUTTON
-  // -----------------------------
   void _newMessage() {
     final now = DateTime.now();
     final season = AngelSelector.getCurrentSeason(now);
@@ -101,16 +106,10 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  // -----------------------------
-  // NAVIGATION
-  // -----------------------------
   Future<void> _openCategories() async {
     Navigator.pushNamed(context, '/categories');
   }
 
-  // -----------------------------
-  // SPARKLES
-  // -----------------------------
   void _spawnSparkles(TapDownDetails details) {
     final pos = details.globalPosition;
 
@@ -121,7 +120,6 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {});
   }
 
-  // CLEANUP (auto-remove sparkles that finished animating)
   void _cleanupParticles() {
     _particles.removeWhere((p) => p.shouldRemove);
   }
@@ -131,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen>
     final now = DateTime.now();
     final season = AngelSelector.getCurrentSeason(now);
     final angelImage = AngelSelector.getAngelAsset(season);
+
     final screenHeight = MediaQuery.of(context).size.height;
 
     _cleanupParticles();
@@ -142,10 +141,6 @@ class _HomeScreenState extends State<HomeScreen>
         onPressed: _openCategories,
         child: const Icon(Icons.category, color: Colors.black),
       ),
-
-      // -----------------------------
-      // MAIN LAYOUT
-      // -----------------------------
       body: Stack(
         children: [
           Center(
@@ -154,9 +149,6 @@ class _HomeScreenState extends State<HomeScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // -----------------------------
-                  // ANGEL IMAGE ANIMATION
-                  // -----------------------------
                   GestureDetector(
                     onTapDown: _spawnSparkles,
                     onTap: () => _bounceController.forward(from: 0),
@@ -215,23 +207,21 @@ class _HomeScreenState extends State<HomeScreen>
 
                   const SizedBox(height: 40),
 
-                  // -----------------------------
-                  // MESSAGE WITH FADE TRANSITION
-                  // -----------------------------
-                  FadeTransition(
-                    opacity: _fadeAnim,
-                    child: Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium,
+                  // ⭐ SLIDE + FADE MESSAGE TRANSITION ⭐
+                  SlideTransition(
+                    position: _slideAnim,
+                    child: FadeTransition(
+                      opacity: _fadeAnim,
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 40),
 
-                  // -----------------------------
-                  // BUTTON
-                  // -----------------------------
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.accent,
@@ -255,9 +245,6 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // -----------------------------
-          // SPARKLE PARTICLES
-          // -----------------------------
           ..._particles,
         ],
       ),
