@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'ui/screens/home_screen.dart';
-import 'ui/screens/categories_screen.dart';
+import 'ui/screens/help_screen.dart';
 
 void main() {
-  runApp(AngelNotesApp());
+  runApp(const AngelNotesApp());
 }
 
 class AngelNotesApp extends StatelessWidget {
@@ -13,13 +13,13 @@ class AngelNotesApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Angel Notes',
+      title: 'AngelNotes',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: '/',
       routes: {
-        '/': (context) => HomeScreen(),
-        '/categories': (context) => CategoriesScreen(),
+        '/': (context) => const HomeScreen(),
+        '/help': (context) => const HelpScreen(),
       },
     );
   }
