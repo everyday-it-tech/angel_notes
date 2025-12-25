@@ -1,60 +1,61 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        <title>AngelNotes</title>
-        <meta
-            name="description"
-            content="AngelNotes — little messages that feel like love."
-        />
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        <!-- PWA -->
-        <link rel="manifest" href="./manifest.json" />
-        <meta name="theme-color" content="#111827" />
+    <title>AngelNotes</title>
+    <meta name="description" content="AngelNotes — little messages that feel like love." />
 
-        <!-- iOS PWA support -->
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-            name="apple-mobile-web-app-status-bar-style"
-            content="black-translucent"
-        />
-        <meta name="apple-mobile-web-app-title" content="AngelNotes" />
+    <!-- PWA -->
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#111827" />
 
-        <link rel="stylesheet" href="./style.css" />
-    </head>
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AngelNotes" />
 
-    <body>
-        <main class="wrap">
-            <header class="top">
-                <div class="brand">
-                    <div class="halo" aria-hidden="true">✨</div>
-                    <div>
-                        <h1>AngelNotes</h1>
-                        <p class="sub">A tiny note from your nerd 💚</p>
-                    </div>
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <main class="wrap">
+        <header class="top">
+            <div class="brand">
+                <div class="halo" aria-hidden="true">✨</div>
+                <div>
+                    <h1>AngelNotes</h1>
+                    <p class="sub">A tiny note from your nerd 💚</p>
                 </div>
-            </header>
+            </div>
+        </header>
 
-            <section class="card" aria-live="polite">
-                <div class="label">Today’s note</div>
-                <div id="message" class="message">Loading…</div>
-                <div class="meta" id="meta"></div>
-            </section>
+        <section class="angel-wrap">
+            <img src="./assets/christmas_angel.png" alt="AngelNotes Christmas Angel" class="angel-img" />
+        </section>
 
-            <section class="actions">
-                <button id="newBtn" class="btn primary" type="button">
-                    Give me another 🥺
-                </button>
-                <button id="copyBtn" class="btn" type="button">Copy</button>
-            </section>
 
-            <footer class="footer">
-                <span>v0.1 • messages-first</span>
-            </footer>
-        </main>
+        <section class="card" aria-live="polite">
+            <div class="label">Today’s note</div>
+            <div id="message" class="message">Loading…</div>
+            <div class="meta" id="meta"></div>
+        </section>
 
-        <script src="./app.js"></script>
-    </body>
+        <section class="actions">
+            <button id="newBtn" class="btn primary" type="button">
+                Give me another 🥺
+            </button>
+            <button id="copyBtn" class="btn" type="button">Copy</button>
+        </section>
+
+        <footer class="footer">
+            <span>v0.1 • messages-first</span>
+        </footer>
+    </main>
+
+    <script src="./app.js"></script>
+</body>
+
 </html>
