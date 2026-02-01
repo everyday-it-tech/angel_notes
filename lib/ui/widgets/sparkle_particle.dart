@@ -1,17 +1,15 @@
-import 'dart:math';
-import 'package:flutter/material.dart';
+import "dart:math";
+import "package:flutter/material.dart";
 
 class SparkleParticle extends StatefulWidget {
   final Offset startPosition;
+  final VoidCallback onDone;
 
   const SparkleParticle({
     super.key,
     required this.startPosition,
+    required this.onDone,
   });
-
-  // 👑 Expose a getter so HomeScreen can safely remove finished particles
-  bool get shouldRemove => _shouldRemove;
-  static bool _shouldRemove = false;
 
   @override
   State<SparkleParticle> createState() => _SparkleParticleState();
@@ -19,25 +17,20 @@ class SparkleParticle extends StatefulWidget {
 
 class _SparkleParticleState extends State<SparkleParticle>
     with SingleTickerProviderStateMixin {
-
   late AnimationController _controller;
   late Animation<double> _fade;
   late Animation<double> _rise;
   late Animation<double> _scale;
 
   final Random _random = Random();
-
-  double driftX = 0;
-  double size = 0;
+  late double driftX;
+  late double size;
 
   @override
   void initState() {
     super.initState();
 
-    // small random drift left or right
     driftX = (_random.nextDouble() - 0.5) * 30;
-
-    // random sparkle size
     size = 10 + _random.nextDouble() * 10;
 
     _controller = AnimationController(
@@ -60,10 +53,9 @@ class _SparkleParticleState extends State<SparkleParticle>
       curve: Curves.easeOut,
     ).drive(Tween(begin: 1.0, end: 0.0));
 
-    // When animation finishes → flag for removal
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        SparkleParticle._shouldRemove = true;
+        widget.onDone();
       }
     });
 
@@ -89,9 +81,9 @@ class _SparkleParticleState extends State<SparkleParticle>
             child: Transform.scale(
               scale: _scale.value,
               child: Icon(
-                Icons.star,
-                color: Colors.amberAccent,
+                Icons.auto_awesome,
                 size: size,
+                color: Colors.white.withOpacity(0.85),
               ),
             ),
           ),

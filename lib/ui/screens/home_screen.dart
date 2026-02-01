@@ -1,10 +1,17 @@
-import 'dart:math' as math;
-import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/material.dart';
-import 'package:angel_notes/data/angel_selector.dart';
-import 'package:angel_notes/data/message_logic.dart';
-import '../../../theme/app_theme.dart';
-import '../widgets/sparkle_particle.dart';
+import "dart:math" as math;
+import "package:flutter/material.dart";
+import "package:audioplayers/audioplayers.dart";
+import "package:shared_preferences/shared_preferences.dart";
+
+import "package:angel_notes/data/angel_selector.dart";
+import "package:angel_notes/data/message_logic.dart";
+import "package:angel_notes/data/message_history_manager.dart";
+import "package:angel_notes/data/favorites_manager.dart";
+
+import "../../theme/app_theme.dart";
+import "../widgets/sparkle_particle.dart";
+import "history_screen.dart";
+import "help_screen.dart";
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,32 +24,37 @@ class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin {
   late AnimationController _floatController;
   late AnimationController _bounceController;
-  late AnimationController _entranceController;
-
   late AnimationController _fadeController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
   late String message;
-  final List<SparkleParticle> _particles = [];
+  late AngelSeason _season;
+  late String _angelAsset;
 
+  bool _isDailyNote = true;
+  bool _isFavorited = false;
+
+  final List<Widget> _particles = [];
   final AudioPlayer _audioPlayer = AudioPlayer();
-
-  Future<void> _playChime() async {
-    try {
-      await _audioPlayer.play(
-        AssetSource("audio/angel_chime.wav"),
-      );
-    } catch (_) {}
-  }
 
   @override
   void initState() {
     super.initState();
 
     final now = DateTime.now();
-    final season = AngelSelector.getCurrentSeason(now);
-    message = MessageLogic.getInitialMessage(season, now);
+    _season = AngelSelector.getCurrentSeason(now);
+    _angelAsset = AngelSelector.getAngelAsset(_season);
+    message = MessageLogic.getInitialMessage(_season, now);
+
+    _evaluateDailyNote();
+    _updateFavoriteState();
+
+    // IMPORTANT: do NOT await here
+    MessageHistoryManager.add(
+      message: message,
+      season: _season,
+    );
 
     _floatController = AnimationController(
       vsync: this,
@@ -53,11 +65,6 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..forward();
 
     _fadeController = AnimationController(
       vsync: this,
@@ -86,165 +93,307 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _floatController.dispose();
     _bounceController.dispose();
-    _entranceController.dispose();
     _fadeController.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _newMessage() {
-    final now = DateTime.now();
-    final season = AngelSelector.getCurrentSeason(now);
+  Future<void> _evaluateDailyNote() async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayKey = DateTime.now().toIso8601String().substring(0, 10);
+    final lastSeen = prefs.getString("angelnotes_last_daily");
 
-    _fadeController.reverse().then((_) {
-      setState(() {
-        message = MessageLogic.getNextMessage(season, now);
-      });
-
-      _fadeController.forward();
-      _playChime();
-    });
-  }
-
-  Future<void> _openCategories() async {
-    Navigator.pushNamed(context, '/categories');
-  }
-
-  void _spawnSparkles(TapDownDetails details) {
-    final pos = details.globalPosition;
-
-    for (int i = 0; i < 6; i++) {
-      _particles.add(SparkleParticle(startPosition: pos));
+    if (lastSeen == todayKey) {
+      _isDailyNote = false;
+    } else {
+      await prefs.setString("angelnotes_last_daily", todayKey);
+      _isDailyNote = true;
     }
 
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _updateFavoriteState() async {
+    _isFavorited = await FavoritesManager.isFavorited(message);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _playChime() async {
+    try {
+      await _audioPlayer.play(
+        AssetSource("audio/angel_chime.wav"),
+      );
+    } catch (_) {}
+  }
+
+  void _spawnSparkles(Offset position) {
+    for (int i = 0; i < 6; i++) {
+      final key = UniqueKey();
+      _particles.add(
+        SparkleParticle(
+          key: key,
+          startPosition: position.translate(
+            (math.Random().nextDouble() - 0.5) * 40,
+            (math.Random().nextDouble() - 0.5) * 10,
+          ),
+          onDone: () {
+            if (!mounted) return;
+            setState(() {
+              _particles.removeWhere((w) => w.key == key);
+            });
+          },
+        ),
+      );
+    }
     setState(() {});
   }
 
-  void _cleanupParticles() {
-    _particles.removeWhere((p) => p.shouldRemove);
+  Future<void> _newMessage() async {
+    final now = DateTime.now();
+
+    final nextSeason = AngelSelector.getCurrentSeason(now);
+    final nextMessage =
+        MessageLogic.getNextMessage(nextSeason, now);
+
+    await _playChime();
+    _bounceController.forward(from: 0);
+
+    setState(() {
+      _season = nextSeason;
+      _angelAsset = AngelSelector.getAngelAsset(nextSeason);
+      message = nextMessage;
+      _isDailyNote = false;
+    });
+
+    await MessageHistoryManager.add(
+      message: nextMessage,
+      season: nextSeason,
+    );
+
+    await _updateFavoriteState();
+    _fadeController.forward(from: 0);
   }
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final season = AngelSelector.getCurrentSeason(now);
-    final angelImage = AngelSelector.getAngelAsset(season);
-
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    _cleanupParticles();
+    final seasonLabel = AngelSelector.seasonLabel(_season);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Angel Notes")),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.accent,
-        onPressed: _openCategories,
-        child: const Icon(Icons.category, color: Colors.black),
+      appBar: AppBar(
+        title: const Text("AngelNotes"),
+        actions: [
+          IconButton(
+            tooltip: "History",
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const HistoryScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            tooltip: "Help",
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const HelpScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
           Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(18),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  GestureDetector(
-                    onTapDown: _spawnSparkles,
-                    onTap: () => _bounceController.forward(from: 0),
-                    child: AnimatedBuilder(
-                      animation: Listenable.merge([
-                        _floatController,
-                        _bounceController,
-                        _entranceController,
-                      ]),
-                      builder: (context, child) {
-                        final floatOffset =
-                            math.sin(_floatController.value * 2 * math.pi) * 10;
-
-                        final glowOpacity =
-                            (math.sin(_floatController.value * 2 * math.pi) + 1) / 2;
-
-                        final entranceValue = CurvedAnimation(
-                          parent: _entranceController,
-                          curve: Curves.easeOut,
-                        ).value;
-
-                        final entranceOffset = (1 - entranceValue) * 40;
-
-                        return Opacity(
-                          opacity: entranceValue,
-                          child: Transform.translate(
-                            offset: Offset(0, floatOffset + entranceOffset),
-                            child: Transform.scale(
-                              scale: 1 + (_bounceController.value * 0.12),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.amberAccent
-                                          .withOpacity(glowOpacity * 0.5),
-                                      blurRadius: 40,
-                                      spreadRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                                child: SizedBox(
-                                  height: screenHeight * 0.22,
-                                  child: Image.asset(
-                                    angelImage,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // ⭐ SLIDE + FADE MESSAGE TRANSITION ⭐
                   SlideTransition(
                     position: _slideAnim,
                     child: FadeTransition(
                       opacity: _fadeAnim,
-                      child: Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                    ),
-                  ),
+                      child: Column(
+                        children: [
+                          AnimatedBuilder(
+                            animation: _floatController,
+                            builder: (context, child) {
+                              final y = math.sin(
+                                        _floatController.value *
+                                            2 *
+                                            math.pi,
+                                      ) *
+                                      8;
+                              return Transform.translate(
+                                offset: Offset(0, y),
+                                child: child,
+                              );
+                            },
+                            child: GestureDetector(
+                              onTapDown: (d) =>
+                                  _spawnSparkles(d.localPosition),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(26),
+                                child: Image.asset(
+                                  _angelAsset,
+                                  width: 220,
+                                  height: 220,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) {
+                                    return Image.asset(
+                                      "assets/angelNotes_splash.png",
+                                      width: 220,
+                                      height: 220,
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
 
-                  const SizedBox(height: 40),
+                          const SizedBox(height: 14),
 
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accent,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.tile,
+                                  borderRadius:
+                                      BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  _isDailyNote
+                                      ? "Today’s note"
+                                      : "Extra note",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white
+                                        .withOpacity(0.85),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                icon: Icon(
+                                  _isFavorited
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: _isFavorited
+                                      ? Colors.redAccent
+                                      : Colors.white
+                                          .withOpacity(0.85),
+                                ),
+                                onPressed: () async {
+                                  await FavoritesManager.toggleFavorite(
+                                    message,
+                                  );
+                                  await _updateFavoriteState();
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.tile,
+                              borderRadius:
+                                  BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              "Season: $seasonLabel",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white
+                                    .withOpacity(0.85),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          ScaleTransition(
+                            scale: Tween<double>(
+                              begin: 1.0,
+                              end: 1.04,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: _bounceController,
+                                curve: Curves.easeOutBack,
+                              ),
+                            ),
+                            child: Container(
+                              width: double.infinity,
+                              padding:
+                                  const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: AppTheme.tile,
+                                borderRadius:
+                                    BorderRadius.circular(22),
+                              ),
+                              child: Text(
+                                message,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 22),
+
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    AppTheme.accent,
+                                foregroundColor:
+                                    Colors.black,
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape:
+                                    RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(30),
+                                ),
+                              ),
+                              onPressed: _newMessage,
+                              child: const Text(
+                                "Give me another 🥺",
+                                style:
+                                    TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    onPressed: _newMessage,
-                    child: const Text(
-                      "Give me another 🥺",
-                      style: TextStyle(fontSize: 18),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
           ..._particles,
         ],
       ),

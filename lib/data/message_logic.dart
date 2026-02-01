@@ -112,21 +112,21 @@ class MessageLogic {
       timeBands: {TimeBand.evening, TimeBand.night, TimeBand.any},
     ),
 
-    // ---------- Valentine / romantic (for Megan vibes) ----------
+    // ---------- valentines / romantic (for Megan vibes) ----------
     MessageEntry(
       text: "Reminder: you are deeply, ridiculously loved. No performance required 💘",
       mood: AngelMood.romantic,
-      seasons: {AngelSeason.valentine},
+      seasons: {AngelSeason.valentines},
     ),
     MessageEntry(
       text: "Your brain, your heart, your weird little quirks — all of it is ridiculously lovable 💌",
       mood: AngelMood.romantic,
-      seasons: {AngelSeason.valentine, AngelSeason.generic},
+      seasons: {AngelSeason.valentines, AngelSeason.generic},
     ),
     MessageEntry(
       text: "Somebody out there is genuinely grateful that you exist. (Spoiler: it’s more than one person) 💕",
       mood: AngelMood.romantic,
-      seasons: {AngelSeason.valentine, AngelSeason.generic},
+      seasons: {AngelSeason.valentines, AngelSeason.generic},
     ),
 
     // ---------- Halloween (spooky but soft) ----------

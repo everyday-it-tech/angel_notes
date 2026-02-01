@@ -2,7 +2,7 @@ name: angel_notes
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -37,8 +37,6 @@ dependencies:
 
   audioplayers: ^5.2.1
 
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -56,19 +54,16 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - lib/assets/
-    - lib/assets/seasonal_angels/
-    - lib/assets/audio/angel_chime.wav
-
+    - assets/angelNotes_splash.png
+    - assets/audio/angel_chime.wav
+    - assets/seasonal_angels/christmas_angel.png
+    - assets/seasonal_angels/valentines_angel.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-
-    
-  
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
